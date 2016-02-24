@@ -1,0 +1,74 @@
+#!/bin/sh
+#
+# golangvend - no-bullshit vendoring of Golang dependencies
+#
+# This program is free software: you can redistribute it and/or modify it under
+# the terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+# details.
+#
+# You should have received a copy of the GNU General Public License along with
+# golangvend If not, see <http://www.gnu.org/licenses/>.
+#
+
+################################################################################
+# step 1: be lazy
+
+set -e
+
+################################################################################
+# step 2: import dependencies into localdeps tree
+
+mkdir -p localdeps/pins
+
+all_source_files() {
+    find -name .golangvend-cache -prune -o -name '*.go' -print
+}
+
+# find external dependencies (the sed/grep foo assumes that gofmt was run!)
+# (sed selects import statements, grep selects the lines with package names,
+# cut selects just the package names, sed #2 converts vendored imports into the
+# original imports, grep #2 selects external packages)
+sed -n '/^import (/,/)/p;/^import "/p' $(all_source_files) | grep '"' | cut -d'"' -f2 | sed 's+.*/localdeps/++' | grep -E '\w+\.' | sort -u | while read repo; do
+    # get this dependency
+    GOPATH="$PWD/.golangvend-cache" go get -u $repo
+
+    # pin the current version in localdeps/pins if there is no pin yet
+    PINFILE="localdeps/pins/${repo//\//_}"
+    [ -f "$PINFILE" ] || git -C .golangvend-cache/src/$repo rev-parse origin/master > "$PINFILE"
+    HASH=$(git -C .golangvend-cache/src/$repo rev-parse origin/master)
+    echo $HASH > localdeps/pins/${repo//\//_}
+
+    # vendor the source code into the localdeps/ directory
+    rm -rf localdeps/$repo/
+    git -C .golangvend-cache/src/$repo archive --prefix=localdeps/$repo/ "$(cat "$PINFILE")" | tar xf -
+done
+
+################################################################################
+# step 3: rewrite import paths
+
+relpath() {
+    # use like: relpath $target $source
+    if hash python2 &>/dev/null; then
+        python2 -c "import sys, os.path; print os.path.relpath(sys.argv[1], sys.argv[2]) " "$@"
+    else
+        python3 -c "import sys, os.path; print(os.path.relpath(sys.argv[1], sys.argv[2]))" "$@"
+    fi
+}
+
+all_source_files | while read file; do
+    # prepare relative path from $(dirname $file) to localdeps
+    path_to_localdeps="$(relpath . "$(dirname "$file")")"/localdeps
+
+    # in single-line and in multiline import statements...
+    for address in '/^import (/,/)/' '/^import "/'; do
+        # 1. remove vendored imports to make the next statement easier
+        # 2. create vendored imports by prefixing the relevant imports with the $path_to_localdeps
+        sed -i "$address { /\"\\w\\+\\./ { s+\"$path_to_localdeps/+\"+; s+\"+\"$path_to_localdeps/+; }}" "$file"
+    done
+done
