@@ -21,7 +21,7 @@ source tree being placed at the right location in `GOPATH`. Even Go 1.6's
 
 ```bash
 git clone https://github.com/holocm/golangvend
-ln -s $PWD/golangvend/golangvend ~/bin # or whereever you put your tools
+ln -s $PWD/golangvend/golangvend ~/bin # or wherever you put your tools
 ```
 
 No compilation required, no obscure dependencies. Just a shell script.
@@ -93,4 +93,5 @@ I have only tested this on my own code. Your code is likely different, so you
 may run across bugs. Please don't trust the output of golangvend blindly;
 review its changes with `git diff` or `git add -p`. As a rule of thumb, if you
 can `go build` and `go test` everything with the `GOPATH` variable unset, then
-everything should be fine.
+everything should be fine. It's actually a good idea to [put this in your Makefile or build script](https://github.com/holocm/holo-build/blob/96f0e5b4ea7d758dff462a7f4bb3e16d9afb22b0/Makefile#L5),
+to enforce that your contributors also use golangvend when necessary.
