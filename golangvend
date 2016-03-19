@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # golangvend - no-bullshit vendoring of Golang dependencies
 #
@@ -34,10 +34,15 @@ all_source_files() {
 # (sed selects import statements, grep selects the lines with package names,
 # cut selects just the package names, sed #2 converts vendored imports into the
 # original imports, grep #2 selects external packages)
-sed -n '/^import (/,/)/p;/^import "/p' $(all_source_files) | grep '"' | cut -d'"' -f2 | sed 's+.*/localdeps/++' | grep -E '\w+\.' | sort -u | while read repo; do
+sed -n '/^import (/,/)/p;/^import "/p' $(all_source_files) | grep '"' | cut -d'"' -f2 | sed 's+.*/localdeps/++' | grep -E '\w+\.' | sort -u | while read imported_path; do
     # get this dependency
-    GOPATH="$PWD/.golangvend-cache" go get -u $repo
-
+    GOPATH="$PWD/.golangvend-cache" go get -u $imported_path
+    # we want to vendor the whole external repository, not just the directory
+    # inside it that we happen to include, so find the import name of the repo
+    imported_path_with_slash="$imported_path/"
+    path_inside_repo="$(git -C $PWD/.golangvend-cache/src/$imported_path rev-parse --show-prefix)"
+    echo "${imported_path_with_slash%/$path_inside_repo}"
+done | sort -u | while read repo; do
     # pin the current version in localdeps/pins if there is no pin yet
     PINFILE="localdeps/pins/${repo//\//_}"
     [ -f "$PINFILE" ] || git -C .golangvend-cache/src/$repo rev-parse origin/master > "$PINFILE"
