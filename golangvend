@@ -46,8 +46,6 @@ done | sort -u | while read repo; do
     # pin the current version in localdeps/pins if there is no pin yet
     PINFILE="localdeps/pins/${repo//\//_}"
     [ -f "$PINFILE" ] || git -C .golangvend-cache/src/$repo rev-parse origin/master > "$PINFILE"
-    HASH=$(git -C .golangvend-cache/src/$repo rev-parse origin/master)
-    echo $HASH > localdeps/pins/${repo//\//_}
 
     # vendor the source code into the localdeps/ directory
     rm -rf localdeps/$repo/
