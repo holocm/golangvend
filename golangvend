@@ -73,8 +73,8 @@ all_source_files | while read file; do
 
     # in single-line and in multiline import statements...
     for address in '/^import (/,/)/' '/^import "/'; do
-        # 1. remove vendored imports to make the next statement easier
+        # 1. remove vendored imports to make the next statement easier (and also to fix imports after `git mv` of source files)
         # 2. create vendored imports by prefixing the relevant imports with the $path_to_localdeps
-        sed -i "$address { /\"\\w\\+\\./ { s+\"$path_to_localdeps/+\"+; s+\"+\"$path_to_localdeps/+; }}" "$file"
+        sed -i "$address { /\<\\w\\+\\./ { s+\".*/localdeps/+\"+; s+\"+\"$path_to_localdeps/+; }}" "$file"
     done
 done
