@@ -16,26 +16,15 @@
 # golangvend If not, see <http://www.gnu.org/licenses/>.
 #
 
-################################################################################
-# step 1: be lazy
-
-set -e
-
-################################################################################
-# step 2: import dependencies into localdeps tree
-
-mkdir -p localdeps/pins
+set -euo pipefail
+mkdir -p vendor/pins
 export GOPATH="$PWD/.golangvend-cache" GOBIN=""
-
-all_source_files() {
-    find -name .golangvend-cache -prune -o -name '*.go' -print
-}
 
 # find external dependencies (the sed/grep foo assumes that gofmt was run!)
 # (sed selects import statements, grep selects the lines with package names,
 # cut selects just the package names, sed #2 converts vendored imports into the
 # original imports, grep #2 selects external packages)
-sed -n '/^import (/,/)/p;/^import "/p' $(all_source_files) | grep '"' | cut -d'"' -f2 | sed 's+.*/localdeps/++' | grep -E '\w+\.' | sort -u | while read imported_path; do
+sed -n '/^import (/,/)/p;/^import "/p' $(find -name .golangvend-cache -prune -o -name '*.go' -print) | grep '"' | cut -d'"' -f2 | sed 's+.*/vendor/++' | grep -E '\w+\.' | sort -u | while read imported_path; do
     # get this dependency
     [ -d "$GOPATH/src/$imported_path" ] || go get -d $imported_path
     # we want to vendor the whole external repository, not just the directory
@@ -46,35 +35,11 @@ sed -n '/^import (/,/)/p;/^import "/p' $(all_source_files) | grep '"' | cut -d'"
 done | sort -u | while read repo; do
     # make sure that the cache is up-to-date
     git -C "$GOPATH/src/$repo" fetch origin >/dev/null
-    # pin the current version in localdeps/pins if there is no pin yet
-    PINFILE="localdeps/pins/${repo//\//_}"
+    # pin the current version in vendor/pins if there is no pin yet
+    PINFILE="vendor/pins/${repo//\//_}"
     [ -f "$PINFILE" ] || git -C "$GOPATH/src/$repo" rev-parse origin/master > "$PINFILE"
 
-    # vendor the source code into the localdeps/ directory
-    rm -rf -- "localdeps/$repo/"
-    git -C "$GOPATH/src/$repo" archive --prefix=localdeps/$repo/ "$(cat "$PINFILE")" | tar xf -
-done
-
-################################################################################
-# step 3: rewrite import paths
-
-relpath() {
-    # use like: relpath $target $source
-    if hash python2 &>/dev/null; then
-        python2 -c "import sys, os.path; print os.path.relpath(sys.argv[1], sys.argv[2]) " "$@"
-    else
-        python3 -c "import sys, os.path; print(os.path.relpath(sys.argv[1], sys.argv[2]))" "$@"
-    fi
-}
-
-all_source_files | while read file; do
-    # prepare relative path from $(dirname $file) to localdeps
-    path_to_localdeps="$(relpath . "$(dirname "$file")")"/localdeps
-
-    # in single-line and in multiline import statements...
-    for address in '/^import (/,/)/' '/^import "/'; do
-        # 1. remove vendored imports to make the next statement easier (and also to fix imports after `git mv` of source files)
-        # 2. create vendored imports by prefixing the relevant imports with the $path_to_localdeps
-        sed -i "$address { /\<\\w\\+\\./ { s+\".*/localdeps/+\"+; s+\"+\"$path_to_localdeps/+; }}" "$file"
-    done
+    # vendor the source code into the vendor/ directory
+    rm -rf -- "vendor/$repo/"
+    git -C "$GOPATH/src/$repo" archive --prefix=vendor/$repo/ "$(cat "$PINFILE")" | tar xf -
 done
