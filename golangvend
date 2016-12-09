@@ -33,6 +33,14 @@ sed -n '/^import (/,/)/p;/^import "/p' $(find -name .golangvend-cache -prune -o 
     path_inside_repo="$(git -C "$GOPATH/src/$imported_path" rev-parse --show-prefix)"
     echo "${imported_path_with_slash%/$path_inside_repo}"
 done | sort -u | while read repo; do
+    # allow the user to skip unnecessary transitive dependencies
+    SKIPFILE="vendor/skip/${repo//\//_}"
+    if [ -f "$SKIPFILE" ]; then
+        echo "[ skip ] $repo"
+        continue
+    fi
+    echo "[vendor] $repo"
+
     # make sure that the cache is up-to-date
     git -C "$GOPATH/src/$repo" fetch origin >/dev/null
     # pin the current version in vendor/pins if there is no pin yet

@@ -57,6 +57,14 @@ welcome.) If you remove a dependency and it's not used anymore, you can remove
 its source tree from below `vendor/` and its pin from `vendor/pins`
 manually.
 
+## Skipping a dependency
+
+Sometimes the libraries that you pull in depend on other libraries, but you
+don't actually need these dependencies (e.g. because they are only used for
+unit tests). To make golangvend skip a dependency to e.g. `github.com/foo/bar`,
+touch the file `vendor/skip/github.com_foo_bar`. (The filename is the same as
+below `vendor/pins/`.)
+
 ## When all is fucked and you want to get out
 
 To revert all the changes that golangvend did, delete the `vendor` and
