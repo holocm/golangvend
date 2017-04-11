@@ -26,12 +26,10 @@ Go to the repository root directory. Before running golangvend,
 
 Now run golangvend. It will look for external dependencies in all source files.
 For every such dependency, it will pull the source code into `vendor/`, e.g.
-at `vendor/github.com/user/repo` for dependencies from Github.
+at `vendor/github.com/user/repo` for dependencies from Github. If dependencies
+have dependencies themselves, these will be vendored, too.
 
-Review the changes and `git add` everything. Now there's a small catch: If the
-dependencies you just vendored have other dependencies, you did not vendor
-these yet. The solution is easy: Just run golangvend again. Repeat until
-golangvend does not add any new dependencies into the vendor tree.
+Review the changes and `git add` everything.
 
 ## Adding another dependency
 
@@ -51,19 +49,8 @@ pin file, then run golangvend.
 
 ## Removing a dependency
 
-golangvend will not remove dependencies from the vendor tree by itself when
-they are not used anymore. (Should be easy to add, though. Pull requests are
-welcome.) If you remove a dependency and it's not used anymore, you can remove
-its source tree from below `vendor/` and its pin from `vendor/pins`
-manually.
-
-## Skipping a dependency
-
-Sometimes the libraries that you pull in depend on other libraries, but you
-don't actually need these dependencies (e.g. because they are only used for
-unit tests). To make golangvend skip a dependency to e.g. `github.com/foo/bar`,
-touch the file `vendor/skip/github.com_foo_bar`. (The filename is the same as
-below `vendor/pins/`.)
+Remove the import statement from your code. The next golangvend run will detect
+and offer to cleanup the unused import.
 
 ## When all is fucked and you want to get out
 
@@ -72,9 +59,8 @@ To revert all the changes that golangvend did, delete the `vendor` and
 
 # The fine print
 
-I have only tested this on my own code. Your code is likely different, so you
-may run across bugs. Please don't trust the output of golangvend blindly;
-review its changes with `git diff` or `git add -p`.
+Please don't trust the output of golangvend blindly; review its changes with
+`git diff` or `git add -p`.
 
 To ensure that all dependencies are vendored, it's a good idea to set up your
 Makefile such that the build sees an otherwise empty `GOPATH`. For example,
