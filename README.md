@@ -34,8 +34,7 @@ Review the changes and `git add` everything.
 ## Adding another dependency
 
 Just add the new import statement to your code. Then save the source file and
-run golangvend. Again, if the dependency pulls in other dependencies, multiple
-runs may be necessary.
+run golangvend.
 
 ## Updating a vendored dependency
 
@@ -50,7 +49,7 @@ pin file, then run golangvend.
 ## Removing a dependency
 
 Remove the import statement from your code. The next golangvend run will detect
-and offer to cleanup the unused import.
+the unused import. To remove unused imports, run `golangvend --delete-unused`.
 
 ## When all is fucked and you want to get out
 
