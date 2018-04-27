@@ -90,10 +90,17 @@ vendor_deps() {
 
       # we want to vendor the whole external repository, not just the directory
       # inside it that we happen to include, so find the import name of the repo
-      IMPORTED_PATH_WITH_SLASH="${IMPORTED_PATH}/"
-      PATH_INSIDE_REPO="$(git -C "${CACHE_PATH}/src/${IMPORTED_PATH}" rev-parse --show-prefix)"
-      vendor_repo "${IMPORTED_PATH_WITH_SLASH%/${PATH_INSIDE_REPO}}"
-      vendor_deps "vendor/${IMPORTED_PATH}"
+      local IMPORTED_PATH_WITH_SLASH="${IMPORTED_PATH}/"
+      local PATH_INSIDE_REPO="$(git -C "${CACHE_PATH}/src/${IMPORTED_PATH}" rev-parse --show-prefix)"
+      local REPO_PATH="${IMPORTED_PATH_WITH_SLASH%/${PATH_INSIDE_REPO}}"
+      # allow the user to skip vendoring certain dependencies
+      local SKIP_FILE="vendor/skip/${REPO_PATH//\//_}"
+      if [ -f "${SKIP_FILE}" ]; then
+        printf "\e[1;33m[ skip ]\e[0m %s\n" "${REPO_PATH}"
+      else
+        vendor_repo "${REPO_PATH}"
+        vendor_deps "vendor/${IMPORTED_PATH}"
+      fi
     done
   done
 }
