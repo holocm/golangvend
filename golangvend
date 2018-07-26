@@ -50,7 +50,12 @@ fi
 
 # Given a string, print its SHA256 checksum.
 hash_string() {
-  echo "${1}" | sha256sum | cut -d' ' -f1
+  if [[ uname == "darwin"||"Darwin" ]]; then
+    _sha256sum="shasum -a 256"
+  else
+    _sha256sum="sha256sum"
+  fi
+  echo "${1}" | $_sha256sum | cut -d' ' -f1
 }
 
 # Vendor all dependencies for the package in the given path.
