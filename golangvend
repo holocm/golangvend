@@ -42,10 +42,16 @@ if hash gfind &>/dev/null; then
     gfind "$@"
   }
 fi
-if hash gsha256sum &>/dev/null; then
-  sha256sum() {
-    gsha256sum "$@"
-  }
+if !hash sha256sum &>/dev/null; then
+  if hash gsha256sum &>/dev/null; then
+    sha256sum() {
+      gsha256sum "$@"
+    }
+  else
+    sha256sum() { # fallback for macOS without coreutils
+      shasum -a 256 "$@"
+    }
+  fi
 fi
 
 # Given a string, print its SHA256 checksum.
