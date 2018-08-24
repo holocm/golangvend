@@ -42,7 +42,7 @@ if hash gfind &>/dev/null; then
     gfind "$@"
   }
 fi
-if !hash sha256sum &>/dev/null; then
+if ! hash sha256sum &>/dev/null; then
   if hash gsha256sum &>/dev/null; then
     sha256sum() {
       gsha256sum "$@"
